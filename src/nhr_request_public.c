@@ -161,6 +161,11 @@ void nhr_request_add_parameter(nhr_request request, const char * name, const cha
 	last->value_type = NHR_MAP_VALUE_STRING;
 }
 
+// when file_name is empty,
+// data like
+// name=xxxx
+// data:
+//     xxxxxxxxxxxxx
 void nhr_request_add_data_parameter(nhr_request request, const char * name, const char * file_name, const void * data, const size_t data_size) {
 #if !defined(NHR_NO_POST) // POST functionality
 #if !defined(NHR_NO_POST_DATA) // POST DATA functionality
@@ -172,7 +177,7 @@ void nhr_request_add_data_parameter(nhr_request request, const char * name, cons
     
     name_len = name ? strlen(name) : 0;
     file_name_len = file_name ? strlen(file_name) : 0;
-    if (name_len == 0 || file_name_len == 0) {
+    if (name_len == 0) {
         return;
     }
     
@@ -188,15 +193,22 @@ void nhr_request_add_data_parameter(nhr_request request, const char * name, cons
     if (!request->parameters) {
         request->parameters = nhr_map_create();
     }
-    
-    last = nhr_map_append(request->parameters);
-    last->key = nhr_string_copy_len(name, name_len);
-    last->reserved.string = nhr_string_copy_len(file_name, file_name_len);
-    last->reserved_size = file_name_len;
-    last->reserved_type = NHR_MAP_VALUE_STRING;
-    last->value.data = _data;
-    last->value_size = data_size;
-    last->value_type = NHR_MAP_VALUE_DATA;
+
+	last = nhr_map_append(request->parameters);
+	last->key = nhr_string_copy_len(name, name_len);
+	if (file_name_len > 0) {
+		last->reserved.string = nhr_string_copy_len(file_name, file_name_len);
+		last->reserved_size = file_name_len;
+		last->reserved_type = NHR_MAP_VALUE_STRING;
+		last->value_type = NHR_MAP_VALUE_DATA;
+	} else {
+		last->reserved.string = NULL;
+		last->reserved_size = 0;
+		last->reserved_type = NHR_MAP_VALUE_STRING;
+		last->value_type = NHR_MAP_VALUE_STATIC_STRING;
+	}
+	last->value.data = _data;
+	last->value_size = data_size;
 
 	request->is_have_data_parameter = nhr_true;
     if (!request->boundary) {
